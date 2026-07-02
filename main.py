@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 import anthropic
 import os
 import json
+from agents.orchestrator import MealPlannerOrchestrator
 
 load_dotenv()
 
@@ -54,29 +55,11 @@ Respond ONLY in this exact JSON format:
 
 @app.post("/generate-meal-plan")
 async def generate_meal_plan(request: MealPlanRequest):
-    prompt = build_meal_plan_prompt(
-        request.ingredients,
-        request.preferences,
-        request.people
+    orchestrator = MealPlannerOrchestrator()
+    result = orchestrator.run(
+        ingredients=request.ingredients,
+        preferences=request.preferences,
+        people=request.people
     )
+    return result
     
-    message = client.messages.create(
-        model= "claude-sonnet-4-6",
-        max_tokens=2000,
-        messages=[
-            {"role": "user", "content": prompt}
-        ]
-    )
-    
-    response_text = message.content[0].text
-    print("RAW CLAUDE RESPONSE:", response_text)  # for debugging
-    
-    # Strip markdown code fences if Claude added them
-    cleaned = response_text.strip()
-    if cleaned.startswith("```"):
-        cleaned = cleaned.split("```")[1]
-        if cleaned.startswith("json"):
-            cleaned = cleaned[4:]
-    
-    meal_data = json.loads(cleaned.strip())
-    return meal_data
