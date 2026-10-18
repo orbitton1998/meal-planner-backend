@@ -23,7 +23,12 @@ app = FastAPI()
 app.add_middleware(
     CORSMiddleware,
     # Comma-separated, e.g. "http://localhost:5173,https://meal-planner.vercel.app"
-    allow_origins=os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(","),
+    # Tolerates spaces, quotes and trailing slashes, which browsers never send in Origin.
+    allow_origins=[
+        o.strip().strip("'\"").rstrip("/")
+        for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:5173").split(",")
+        if o.strip()
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
